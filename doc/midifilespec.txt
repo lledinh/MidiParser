@@ -1,0 +1,85 @@
+MIDI Files contain two types of chunks: header chunks and track chunks. A -header- chunk provides a minimal amount of information pertaining to the entire MIDI file. A -track- chunk contains a sequential stream of MIDI data which may contain information for up to 16 MIDI channels. The concepts of multiple tracks, multiple MIDI outputs, patterns, sequences, and songs may all be implemented using several track chunks.
+
+A MIDI File always starts with a header chunk, and is followed by one or more track chunks.
+
+MThd <length of header data>
+<header data>
+MTrk <length of track data>
+<track data>
+MTrk <length of track data>
+<track data>
+
+
+<MTrk event> = <delta-time><event>
+
+<delta-time> is stored as a variable-length quantity. It represents the amount of time before the following event. If the first event in a track occurs at the very beginning of a track, or if two events occur simultaneously, a delta-time of zero is used. Delta-times are always present. (Not storing delta-times of 0 requires at least two bytes for any other value, and most delta-times aren't zero.) Delta-time is in some fraction of a beat (or a second, for recording a track with SMPTE times), as specified in the header chunk.
+
+<event> = <MIDI event> | <sysex event> | <meta-event>
+
+<MIDI event> is any MIDI channel message See Appendix 1 - MIDI Messages. Running status is used: status bytes of MIDI channel messages may be omitted if the preceding event is a MIDI channel message with the same status. The first event in each MTrk chunk must specify status. Delta-time is not considered an event itself: it is an integral part of the syntax for an MTrk event. Notice that running status occurs across delta-times.
+
+<Header Chunk> = <chunk type><length><format><ntrks><division>
+
+<delta_time> <event> .........
+event midi:
+Note off 8n	kk vv
+Note on  9n	kk vv
+/////////////
+
+Megalovania
+4d54 6864 0000 0006 0001 0005 0060 4d54
+
+Determination
+4d54 6864 0000 0006 0001 0002 0400 4d54
+
+Test musescore
+4d54 6864 0000 0006 0001 0002 01e0 4d54
+726b 0000 004f 00ff 5804 0402 1808 00ff
+5902 0000 00ff 5103 07a1 2000 b079 0000
+c000 00b0 0764 000a 4000 5b00 005d 0000
+ff21 0100 0090 4550 8347 4500 1947 5083
+4747 0019 4850 8347 4800 194a 5083 474a
+0001 ff2f 004d 5472 6b00 0000 2c00 ff59
+0200 0000 ff21 0100 0090 2d50 8347 2d00
+192f 5083 472f 0019 3050 8347 3000 1932
+5083 4732 0001 ff2f 00
+
+---------
+Test_une_clef musescore
+4d54 6864 0000 0006 0001 0001 01e0 4d54
+726b 0000 004f 00ff 5804 0402 1808 00ff
+5902 0000 00ff 5103 07a1 2000 b079 0000
+c000 00b0 0764 000a 4000 5b00 005d 0000
+ff21 0100 0090 4350 8347 4300 1945 5083
+4745 0019 4750 8347 4700 1948 5083 4748
+0001 ff2f 00
+
+<Header Chunk> = <chunk type><length><format><ntrks><division>
+<chunk type> = 4d54
+<length> = 0000 0006
+<format> = 0001
+<ntrks> = 0001
+<division> = 01e0
+
+
+-------
+test_la
+
+4d54 6864 0000 0006 0001 0001 01e0 4d54
+726b 0000 003a 00ff 5804 0402 1808 00ff
+5902 0000 00ff 5103 07a1 2000 b079 0000
+c000 00b0 0764 000a 4000 5b00 005d 0000
+ff21 0100 0090 4550 8347 4500 01ff 2f00
+
+<Header Chunk> = <chunk type><length><format><ntrks><division>
+<chunk type> = 4d54
+<length> = 0000 0006
+<format> = 0001
+<ntrks> = 0001
+<division> = 01e0
+
+MTrk = 4d54 726b
+<length> = 0000 003a
+
+11110100001001000000
+101111011000010001000000
