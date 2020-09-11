@@ -20,6 +20,7 @@ public class VariableLengthQuantity {
 
 
     public static int decode(int[] vlqBytes) {
+
         return (vlqBytes[0] & 0x7f) + ((vlqBytes[1] & 0x7f) << 7) + ((vlqBytes[2] & 0x7f) << 14) + ((vlqBytes[3] & 0x7f) << 21);
     }
 

@@ -1,5 +1,7 @@
 package midi;
 
+import java.util.List;
+
 public interface MidiContentParser {
-    void parse(String midiContent);
+    List<MidiMessage> parse();
 }

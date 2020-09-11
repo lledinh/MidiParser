@@ -55,7 +55,7 @@ ff21 0100 0090 4350 8347 4300 1945 5083
 0001 ff2f 00
 
 <Header Chunk> = <chunk type><length><format><ntrks><division>
-<chunk type> = 4d54
+<chunk type> = 4d54 6864
 <length> = 0000 0006
 <format> = 0001
 <ntrks> = 0001
@@ -72,7 +72,7 @@ c000 00b0 0764 000a 4000 5b00 005d 0000
 ff21 0100 0090 4550 8347 4500 01ff 2f00
 
 <Header Chunk> = <chunk type><length><format><ntrks><division>
-<chunk type> = 4d54
+<chunk type> = 4d54 6864
 <length> = 0000 0006
 <format> = 0001
 <ntrks> = 0001
@@ -83,3 +83,12 @@ MTrk = 4d54 726b
 
 11110100001001000000
 101111011000010001000000
+
+-------
+note_la
+
+4d54 6864 0000 0006 0001 0001 01e0 4d54
+726b 0000 003a 00ff 5804 0402 1808 00ff
+5902 0000 00ff 5103 07a1 2000 b079 0000
+c000 00b0 0764 000a 4000 5b00 005d 0000
+ff21 0100 0090 4550 8347 4500 01ff 2f00
