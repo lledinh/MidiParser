@@ -160,10 +160,18 @@ public class Main {
         /////////////////// TRACK PIANO CLEF SOL /////////////////////////
         //////////////////////////////////////////////////////////////////
 
-        //4d54 726b 0000 152e
-        //00ff 5902 fc00 00b0 7900 00c0 0000 b007
-        //6400 0a40 005b 0000 5d00 00ff 2101 0000
-        //903e 5181 633e 000d 3e52 8163 3e00 0d4a
+        // 4d54 726b                Track begin
+        // 0000 152e                Length
+        // 00ff 5902 fc 00          Key signature
+        // 00b0 7900                Controller Change
+        // 00c0 00                  Program Change
+        // 00b0 0764                Controller Change
+        // 000a 40
+        // 005b 00                  Effects 1 Depth
+        // 005d 00                  Effects 3 Depth
+        // 00ff 2101 00             MIDI port
+        // 0090 3e                  Note ON Channel 0 D4
+        // 5181 633e 000d 3e52 8163 3e00 0d4a
         //5283 474a 0019 4552 852b 4500 2544 5283
         //4744 0019 4352 8347 4300 1941 5283 4741
         //0019 3e52 8163 3e00 0d41 5281 6341 000d
