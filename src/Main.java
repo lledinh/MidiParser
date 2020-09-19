@@ -20,21 +20,21 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        byte[] bytes = BytesFileReader.read("./doc/Undertale_-_Megalovania2.mid");
+        byte[] bytes = BytesFileReader.read("./doc/TestG14.mid");
 
         System.out.println("-------- parsing --------");
         MidiFormat1Parser midiFormat1Parser = new MidiFormat1Parser();
         midiFormat1Parser.setBytes(bytes);
         List<MidiMessage> midiMessages = midiFormat1Parser.parse();
 
-//        for (MidiMessage midiMessage: midiMessages) {
-//            System.out.println("------------");
-//            System.out.println(midiMessage.getMidiEvent().toString());
-//            System.out.println("deltaTime --- " + midiMessage.getDeltaTime());
-//            for (Integer i : midiMessage.getArguments()) {
-//                System.out.println("arg --- " + i);
-//            }
-//        }
+        for (MidiMessage midiMessage: midiMessages) {
+            System.out.println("------------");
+            System.out.println(midiMessage.getMidiEvent().toString());
+            System.out.println("deltaTime --- " + midiMessage.getDeltaTime());
+            for (Integer i : midiMessage.getArguments()) {
+                System.out.println("arg --- " + i);
+            }
+        }
 
         // 00 ff 51 03 07a1 20  FF 51 03 tttttt Set Tempo
         // 00 b0 79 00 Reset All Controllers
@@ -202,5 +202,37 @@ public class Main {
         //4300 1941 5283 4741 0019 3e52 8163 3e00
         //0d41 5281 6341 000d 4352 8163 4300 0d3c
         //5281 633c 000d 3c52 8163 3c00 0d4a 5283
+
+        //////// TestG14.mid /////////
+        // 4d54 6864
+        // 0000 0006 0001 0002 01e0
+        // 4d54 726b
+        // 0000 0075                    Length
+        // 00ff 0306 5069 616e 6f00     Track Name
+        // 00ff 5804 0402 1808          Time Signature
+        // 00ff 5902 0100               Key Signature
+        // 00ff 5103 07a120             Set Tempo
+        // 00 b0 7900
+        // 00 c0 00
+        // 00 b0 0764
+        // 00 0a 40
+        // 00 5b 00
+        // 00 5d 00
+        // 00 ff21 0100
+        // 0090 4250
+        // 8347 4200
+        // 1943 5083
+        // 4743 0019 4550
+        // 8347 4500 1947 5083 4747 0019 4250 8347
+        // 4200 1943 5083 4743 0019 4550 8347 4500
+        // 1947 5083 4747 0001 ff2f 004d 5472 6b00
+        // 0000 5200 ff03 0650 6961 6e6f 0000 ff59
+        // 0201 0000 ff21 0100 0090 3650 8347 3600
+        // 1934 5083 4734 0019 3250 8347 3200 1930
+        // 5083 4730 0019 3050 8347 3000 1932 5083
+        // 4732 0019 3450 8347 3400 1936 5083 4736
+        // 0001 ff2f 00
+
+
     }
 }

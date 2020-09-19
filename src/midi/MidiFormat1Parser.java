@@ -3,6 +3,7 @@ package midi;
 import encoding.VariableLengthQuantity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MidiFormat1Parser extends MidiParser {
@@ -70,13 +71,25 @@ public class MidiFormat1Parser extends MidiParser {
         parseDivision(getBytesAsInt(2));
     }
 
-    private int getVariableLengthQuantity() {
+    private List<Integer> getVariableLengthQuantityBytes() {
         List<Integer> currentBytes = new ArrayList<>();
 
         boolean isValidVLE = false;
         while(!isValidVLE) {
             int currentByte = getBytesAsInt(1);
-            System.out.println("currentByte = " + currentByte);
+            currentBytes.add(currentByte);
+            isValidVLE = ((currentByte & 0x80) == 0);
+        }
+
+        return currentBytes;
+    }
+
+    private int getVariableLengthQuantity(boolean advanceCursor) {
+        List<Integer> currentBytes = new ArrayList<>();
+
+        boolean isValidVLE = false;
+        while(!isValidVLE) {
+            int currentByte = getBytesAsInt(1, advanceCursor);
             currentBytes.add(currentByte);
             isValidVLE = ((currentByte & 0x80) == 0);
         }
@@ -92,6 +105,10 @@ public class MidiFormat1Parser extends MidiParser {
         }
 
         return VariableLengthQuantity.decode(nb);
+    }
+
+    private int getVariableLengthQuantity() {
+        return getVariableLengthQuantity(true);
     }
 
     private MidiMessage readTextEvent() {
@@ -112,261 +129,283 @@ public class MidiFormat1Parser extends MidiParser {
         int typeTrack = getBytesAsInt(4);
         int lengthTrack = getBytesAsInt(4);
 
-        int deltaTime = getVariableLengthQuantity();
-        System.out.println("variableLengthQuantity = " + deltaTime);
+        System.out.println("--------------------------");
+        System.out.println("lengthTrack = " + lengthTrack);
+        boolean endTrack = false;
 
-        List<Integer> readBytes = new ArrayList<>();
-        // 1st byte
-        readBytes.add(getBytesAsInt(1));
-        int byteTypeMessage = readBytes.get(0);
+        while(!endTrack) {
+            int deltaTime = getVariableLengthQuantity();
+            System.out.println("variableLengthQuantity = " + deltaTime);
 
-
-
-        MidiMessage midiMessage = new MidiMessage();
-
-        if (byteTypeMessage == 0xF0) {
-            int len = getVariableLengthQuantity();
-            List<Integer> bytes = getBytes(len);
-
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.F0SysexEvent);
-            for (int b : bytes) {
-                midiMessage.addArgument(b);
-            }
-        }
-
-        if (byteTypeMessage == 0xF7) {
-            int len = getVariableLengthQuantity();
-            List<Integer> bytes = getBytes(len);
-
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.F7SysexEvent);
-            for (int b : bytes) {
-                midiMessage.addArgument(b);
-            }
-        }
-
-        if (byteTypeMessage == 0xFF) {
-            // 2nd byte
+            List<Integer> readBytes = new ArrayList<>();
+            // 1st byte
             readBytes.add(getBytesAsInt(1));
+            int byteTypeMessage = readBytes.get(0);
 
-            switch(readBytes.get(1)) {
-                case 0x00:
-                    // 3rd
-                    readBytes.add(getBytesAsInt(1));
-                    // 4th
-                    readBytes.add(getBytesAsInt(1));
-                    // 5th
-                    readBytes.add(getBytesAsInt(1));
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.SequenceNumber);
-                    midiMessage.addArgument(readBytes.get(3));
-                    midiMessage.addArgument(readBytes.get(4));
-                    break;
-                case 0x01:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.Text);
-                    break;
-                case 0x02:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.Copyright);
-                    break;
-                case 0x03:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.TrackName);
-                    break;
-                case 0x04:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.InstrumentName);
-                    break;
-                case 0x05:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.Lyric);
-                    break;
-                case 0x06:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.Marker);
-                    break;
-                case 0x07:
-                    midiMessage = readTextEvent();
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.CuePoint);
-                    break;
+            MidiMessage midiMessage = new MidiMessage();
+            midiMessage.setDeltaTime(deltaTime);
+            List<MidiMessage> midiMessageRunningStatus = new ArrayList<>();
 
-                case 0x20:
-                    // 3rd
-                    readBytes.add(getBytesAsInt(1));
-                    // 4th
-                    readBytes.add(getBytesAsInt(1));
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.MIDIChannelPrefix);
-                    midiMessage.addArgument(readBytes.get(3));
-                    break;
+            if (byteTypeMessage == 0xF0) {
+                int len = getVariableLengthQuantity();
+                List<Integer> bytes = getBytes(len);
 
-                case 0x2F:
-                    readBytes.add(getBytesAsInt(1));
-                    if (readBytes.get(1) == 0) {
-                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.EndOfTrack);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.F0SysexEvent);
+                for (int b : bytes) {
+                    midiMessage.addArgument(b);
+                }
+            }
+
+            if (byteTypeMessage == 0xF7) {
+                int len = getVariableLengthQuantity();
+                List<Integer> bytes = getBytes(len);
+
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.F7SysexEvent);
+                for (int b : bytes) {
+                    midiMessage.addArgument(b);
+                }
+            }
+
+            if (byteTypeMessage == 0xFF) {
+                // 2nd byte
+                readBytes.add(getBytesAsInt(1));
+
+                switch(readBytes.get(1)) {
+                    case 0x00:
+                        // 3rd
+                        readBytes.add(getBytesAsInt(1));
+                        // 4th
+                        readBytes.add(getBytesAsInt(1));
+                        // 5th
+                        readBytes.add(getBytesAsInt(1));
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.SequenceNumber);
+                        midiMessage.addArgument(readBytes.get(3));
+                        midiMessage.addArgument(readBytes.get(4));
+                        break;
+                    case 0x01:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.Text);
+                        break;
+                    case 0x02:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.Copyright);
+                        break;
+                    case 0x03:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.TrackName);
+                        break;
+                    case 0x04:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.InstrumentName);
+                        break;
+                    case 0x05:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.Lyric);
+                        break;
+                    case 0x06:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.Marker);
+                        break;
+                    case 0x07:
+                        midiMessage = readTextEvent();
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.CuePoint);
+                        break;
+
+                    case 0x20:
+                        // 3rd
+                        readBytes.add(getBytesAsInt(1));
+                        // 4th
+                        readBytes.add(getBytesAsInt(1));
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.MIDIChannelPrefix);
+                        midiMessage.addArgument(readBytes.get(3));
+                        break;
+
+                    case 0x2F:
+                        readBytes.add(getBytesAsInt(1));
+                        if (readBytes.get(1) == 0) {
+                            midiMessage.setMidiEvent(MidiConstants.MidiEvent.EndOfTrack);
+                        }
+                        endTrack = true;
+                        break;
+                    case 0x51:
+                        // 3rd
+                        readBytes.add(getBytesAsInt(1));
+                        // 4th
+                        readBytes.add(getBytesAsInt(1));
+                        // 5th
+                        readBytes.add(getBytesAsInt(1));
+                        // 6th
+                        readBytes.add(getBytesAsInt(1));
+
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.SetTempo);
+                        int tempo = (readBytes.get(3) << 16) + (readBytes.get(4) << 8) + readBytes.get(5);
+                        midiMessage.addArgument(tempo);
+                        break;
+                    case 0x54:
+                        advanceCursor(6);
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.NullEvent);
+                        break;
+                    case 0x58:
+                        // 3rd
+                        readBytes.add(getBytesAsInt(1));
+                        // 4th
+                        readBytes.add(getBytesAsInt(1));
+                        // 5th
+                        readBytes.add(getBytesAsInt(1));
+                        // 6th
+                        readBytes.add(getBytesAsInt(1));
+                        // 7th
+                        readBytes.add(getBytesAsInt(1));
+
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.TimeSignature);
+
+                        midiMessage.addArgument(readBytes.get(3));
+                        midiMessage.addArgument(readBytes.get(4));
+                        midiMessage.addArgument(readBytes.get(5));
+                        midiMessage.addArgument(readBytes.get(6));
+                        break;
+
+                    case 0x59:
+                        // 3rd
+                        readBytes.add(getBytesAsInt(1));
+                        // 4th
+                        readBytes.add(getBytesAsInt(1));
+                        // 5th
+                        readBytes.add(getBytesAsInt(1));
+
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.KeySignature);
+                        midiMessage.addArgument(readBytes.get(3));
+                        midiMessage.addArgument(readBytes.get(4));
+                        break;
+
+                    case 0x7F:
+                        int len = getVariableLengthQuantity();
+
+                        List<Integer> bytes = getBytes(len);
+                        midiMessage.setMidiEvent(MidiConstants.MidiEvent.SequencerSpecificMetaEvent);
+                        for (int b : bytes) {
+                            midiMessage.addArgument(b);
+                        }
+
+                        break;
+                }
+            }
+
+            if ((byteTypeMessage & 0xF0) == 0x80) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.NoteOff);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                // 3rd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+                midiMessage.addArgument(readBytes.get(2));
+            }
+
+            if ((byteTypeMessage & 0xF0) == 0x90) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.NoteOn);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                // 3rd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+                midiMessage.addArgument(readBytes.get(2));
+            }
+
+            if ((byteTypeMessage & 0xF0) == 0xA0) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.PolyphonicKeyPressure);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                // 3rd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+                midiMessage.addArgument(readBytes.get(2));
+            }
+
+            if ((byteTypeMessage & 0xF0) == 0xB0) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.ControllerChange);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                // 3rd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+                midiMessage.addArgument(readBytes.get(2));
+
+                boolean runningStatus = true;
+                List<Integer> deltaTimeBytes = new ArrayList<>();
+
+                while(runningStatus) {
+                    deltaTimeBytes = getVariableLengthQuantityBytes();
+                    rewindCursor(deltaTimeBytes.size());
+                    deltaTime = getVariableLengthQuantity();
+                    int nextByte = getBytesAsInt(1);
+                    boolean isInMidiEventsCodes = Arrays.stream(midiEventsCodes).anyMatch(value -> nextByte == value);
+                    if (!isInMidiEventsCodes) {
+                        int nextByte2 = getBytesAsInt(1);
+                        MidiMessage midiMessageRunning = new MidiMessage();
+                        midiMessageRunning.setMidiEvent(MidiConstants.MidiEvent.ControllerChange);
+                        midiMessageRunning.setDeltaTime(deltaTime);
+                        midiMessageRunning.addArgument(nextByte2);
+                        midiMessageRunningStatus.add(midiMessageRunning);
                     }
-                    break;
-                case 0x51:
-                    // 3rd
-                    readBytes.add(getBytesAsInt(1));
-                    // 4th
-                    readBytes.add(getBytesAsInt(1));
-                    // 5th
-                    readBytes.add(getBytesAsInt(1));
-                    // 6th
-                    readBytes.add(getBytesAsInt(1));
+                    runningStatus = !isInMidiEventsCodes;
+                }
+                rewindCursor(1 + deltaTimeBytes.size());
+            }
 
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.SetTempo);
-                    int tempo = (readBytes.get(3) << 16) + (readBytes.get(4) << 8) + readBytes.get(5);
-                    midiMessage.addArgument(tempo);
-                    break;
-                case 0x54:
-                    advanceCursor(6);
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.NullEvent);
-                    break;
-                case 0x58:
-                    // 3rd
-                    readBytes.add(getBytesAsInt(1));
-                    // 4th
-                    readBytes.add(getBytesAsInt(1));
-                    // 5th
-                    readBytes.add(getBytesAsInt(1));
-                    // 6th
-                    readBytes.add(getBytesAsInt(1));
-                    // 7th
-                    readBytes.add(getBytesAsInt(1));
+            if ((byteTypeMessage & 0xF0) == 0xC0) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.ProgramChange);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+            }
 
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.TimeSignature);
+            if ((byteTypeMessage & 0xF0) == 0xD0) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.ChannelKeyPressure);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+            }
 
-                    midiMessage.addArgument(readBytes.get(3));
-                    midiMessage.addArgument(readBytes.get(4));
-                    midiMessage.addArgument(readBytes.get(5));
-                    midiMessage.addArgument(readBytes.get(6));
-                    break;
+            if ((byteTypeMessage & 0xF0) == 0xE0) {
+                int midiChannel = (byteTypeMessage & 0x0F);
+                midiMessage.setMidiEvent(MidiConstants.MidiEvent.PitchBend);
+                // 2nd
+                readBytes.add(getBytesAsInt(1));
+                // 3rd
+                readBytes.add(getBytesAsInt(1));
+                midiMessage.addArgument(midiChannel);
+                midiMessage.addArgument(readBytes.get(1));
+                midiMessage.addArgument(readBytes.get(2));
+            }
 
-                case 0x59:
-                    // 3rd
-                    readBytes.add(getBytesAsInt(1));
-                    // 4th
-                    readBytes.add(getBytesAsInt(1));
-                    // 5th
-                    readBytes.add(getBytesAsInt(1));
 
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.KeySignature);
-                    midiMessage.addArgument(readBytes.get(3));
-                    midiMessage.addArgument(readBytes.get(4));
-                    break;
+            if (byteTypeMessage == 0x0a) {
 
-                case 0x7F:
-                    int len = getVariableLengthQuantity();
+            }
 
-                    List<Integer> bytes = getBytes(len);
-                    midiMessage.setMidiEvent(MidiConstants.MidiEvent.SequencerSpecificMetaEvent);
-                    for (int b : bytes) {
-                        midiMessage.addArgument(b);
-                    }
+            if (byteTypeMessage == 0x5b) {
 
-                    break;
+            }
+
+            if (byteTypeMessage == 0x5d) {
+
             }
 
             messages.add(midiMessage);
+            messages.addAll(midiMessageRunningStatus);
         }
-
-        if ((byteTypeMessage & 0xF0) == 0x80) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.NoteOff);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            // 3rd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-            midiMessage.addArgument(readBytes.get(2));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0x90) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.NoteOn);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            // 3rd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-            midiMessage.addArgument(readBytes.get(2));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0xA0) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.PolyphonicKeyPressure);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            // 3rd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-            midiMessage.addArgument(readBytes.get(2));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0xB0) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.ControllerChange);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            // 3rd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-            midiMessage.addArgument(readBytes.get(2));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0xC0) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.ProgramChange);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0xD0) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.ChannelKeyPressure);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-        }
-
-        if ((byteTypeMessage & 0xF0) == 0xE0) {
-            int midiChannel = (byteTypeMessage & 0x0F);
-            midiMessage.setMidiEvent(MidiConstants.MidiEvent.PitchBend);
-            // 2nd
-            readBytes.add(getBytesAsInt(1));
-            // 3rd
-            readBytes.add(getBytesAsInt(1));
-            midiMessage.addArgument(midiChannel);
-            midiMessage.addArgument(readBytes.get(1));
-            midiMessage.addArgument(readBytes.get(2));
-        }
-
-
-        if (byteTypeMessage == 0x0a) {
-
-        }
-
-        if (byteTypeMessage == 0x5b) {
-
-        }
-
-        if (byteTypeMessage == 0x5d) {
-
-        }
-
-
-
-        System.out.println("byteTypeMessage = " + byteTypeMessage);
-
-        System.out.println("typeTrack = " + Integer.toHexString(typeTrack));
-        System.out.println("lengthTrack = " + lengthTrack);
 
         return messages;
     }
