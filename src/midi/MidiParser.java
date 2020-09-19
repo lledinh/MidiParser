@@ -12,6 +12,8 @@ public abstract class MidiParser implements MidiContentParser {
     protected int divisionFormat;
     protected int ticksQuarterNote;
 
+    protected int[] midiEventsCodes = new int[] {0xFF, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0xF7};
+
     public byte[] getBytes() {
         return bytes;
     }

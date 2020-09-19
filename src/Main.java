@@ -7,23 +7,8 @@ import java.io.IOException;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) throws IOException {
-        byte[] bytes = BytesFileReader.read("./doc/Undertale_-_Megalovania.mid");
 
-        System.out.println("-------- parsing --------");
-        MidiFormat1Parser midiFormat1Parser = new MidiFormat1Parser();
-        midiFormat1Parser.setBytes(bytes);
-        List<MidiMessage> midiMessages = midiFormat1Parser.parse();
-
-        for (MidiMessage midiMessage: midiMessages) {
-            System.out.println("------------");
-            System.out.println(midiMessage.getMidiEvent().toString());
-            System.out.println("deltaTime --- " + midiMessage.getDeltaTime());
-            for (Integer i : midiMessage.getArguments()) {
-                System.out.println("arg --- " + i);
-            }
-        }
-
+    private static void test() {
         int encode = VariableLengthQuantity.encode(106903);
         System.out.println(encode);
         int decode = VariableLengthQuantity.decode(0x00008347);
@@ -32,6 +17,25 @@ public class Main {
         System.out.println(decode);
         decode = VariableLengthQuantity.decode(new int[] { 0x47, 0x83, 0x00, 0x00 });
         System.out.println(decode);
+    }
+
+    public static void main(String[] args) throws IOException {
+        byte[] bytes = BytesFileReader.read("./doc/Undertale_-_Megalovania2.mid");
+
+        System.out.println("-------- parsing --------");
+        MidiFormat1Parser midiFormat1Parser = new MidiFormat1Parser();
+        midiFormat1Parser.setBytes(bytes);
+        List<MidiMessage> midiMessages = midiFormat1Parser.parse();
+
+//        for (MidiMessage midiMessage: midiMessages) {
+//            System.out.println("------------");
+//            System.out.println(midiMessage.getMidiEvent().toString());
+//            System.out.println("deltaTime --- " + midiMessage.getDeltaTime());
+//            for (Integer i : midiMessage.getArguments()) {
+//                System.out.println("arg --- " + i);
+//            }
+//        }
+
         // 00 ff 51 03 07a1 20  FF 51 03 tttttt Set Tempo
         // 00 b0 79 00 Reset All Controllers
         // 00 c0 00 Program Change
@@ -163,16 +167,20 @@ public class Main {
         // 4d54 726b                Track begin
         // 0000 152e                Length
         // 00ff 5902 fc 00          Key signature
-        // 00b0 7900                Controller Change
+        // 00b0 7900                Reset all Controller Change
         // 00c0 00                  Program Change
         // 00b0 0764                Controller Change
         // 000a 40
         // 005b 00                  Effects 1 Depth
         // 005d 00                  Effects 3 Depth
         // 00ff 2101 00             MIDI port
-        // 0090 3e                  Note ON Channel 0 D4
-        // 5181 633e 000d 3e52 8163 3e00 0d4a
-        //5283 474a 0019 4552 852b 4500 2544 5283
+        // 00 90 3e 51              Note ON Channel 0 D4 Vel 51
+        // 8163 3e 00               Note OFF Channel 0 D4 Vel 00
+        // 0d   3e 52               ON D4
+        // 8163 3e 00               OFF D4
+        // 0d   4a 52               ON D5
+        // 8347 4a 00               OFF D5
+        // 19 4552 852b 4500 2544 5283
         //4744 0019 4352 8347 4300 1941 5283 4741
         //0019 3e52 8163 3e00 0d41 5281 6341 000d
         //4352 8163 4300 0d3c 5281 633c 000d 3c52
