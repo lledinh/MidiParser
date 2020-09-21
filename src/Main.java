@@ -8,7 +8,7 @@ import java.util.List;
 
 public class Main {
 
-    private static void test() {
+    private static void testVLQ() {
         int encode = VariableLengthQuantity.encode(106903);
         System.out.println(encode);
         int decode = VariableLengthQuantity.decode(0x00008347);
@@ -19,13 +19,10 @@ public class Main {
         System.out.println(decode);
     }
 
-    public static void main(String[] args) throws IOException {
-        byte[] bytes = BytesFileReader.read("./doc/TestG14.mid");
-        bytes = BytesFileReader.read("./doc/darude-sandstorm.mid");
-        bytes = BytesFileReader.read("./doc/HALLIWELL.It's raining man K.mid");
-        bytes = BytesFileReader.read("./doc/Super Mario 64 - Medley.mid");
 
-        System.out.println("-------- parsing --------");
+    private static void testParseMidi(String path) throws IOException {
+        byte[] bytes = BytesFileReader.read(path);
+
         MidiFormat1Parser midiFormat1Parser = new MidiFormat1Parser();
         midiFormat1Parser.setBytes(bytes);
         List<MidiMessage> midiMessages = midiFormat1Parser.parse();
@@ -45,6 +42,74 @@ public class Main {
             i++;
         }
 
+    }
+    public static void main(String[] args) throws IOException {
+
+//        bytes = BytesFileReader.read("./doc/darude-sandstorm.mid");
+//        bytes = BytesFileReader.read("./doc/HALLIWELL.It's raining man K.mid");
+//        bytes = BytesFileReader.read("./doc/Super Mario 64 - Medley (1).mid");
+
+        testParseMidi("./doc/TestG14.mid");
+        testParseMidi("./doc/darude-sandstorm.mid");
+        testParseMidi("./doc/HALLIWELL.It's raining man K.mid");
+        testParseMidi("./doc/Super Mario 64 - Medley (1).mid");
+
+        // Track 2 Medley
+        // 4d54 726b 0000 5e7e
+        // 00ff 09 16 536d 6172 744d 7573 6963 2053 6f66 7453 796e 7468 2031    Port name
+        // 00ff 03 14 4163 6f75 7374 6963 2047 7261 6e64 2050 6961 6e6f         Track name
+        // 00 c1 00
+        // 00 b1 07 65
+        // 00 b1 0a 40
+        // 00 b1 0a 40
+        // 00 b1 07 7f
+        // 00 91 26 6e
+        // 8375 81 26 00
+        // 0b   91 26 6e
+        // 8375 81 26 00
+        // 840b 91 26 6e
+        // 8375 81 26 00
+        // 840b 91 26 6e
+        // 8375 81 26 00
+        // 0b   91 26 6e
+        // 8655 81 26 00
+        // 812b 91 2b 6e
+        // 8655 81 2b 00
+        // 892b 91 2f 6e
+        // 8655 81 2f 00
+        // 892b 91 2b 6e
+        // ae00 81 2b 00
+        // 9200 91 30 6e
+        // ae00 81 30 00
+        // 9200 91 2b 6e
+        // ae00 81 2b 00
+        // 9200 91 30 6e
+        // ae00 81 30 00
+        // 9200 91 2f 6e
+        // ae00 81 2f 00
+        // 9200 91 2d 6e
+        // ae00 81 2d 00
+        // 9200 912f 6eae 0081 2f00 9200 9132
+        //6eae 0081 3200 9200 9124 6e00 9130 6ebe
+        //0081 2400 0081 3000 8200 9124 6e00 9130
+        //6e9e 0081 2400 0081 3000 8200 9124 6e00
+        //9130 6e9e 0081 2400 0081 3000 8200 9124
+        //6e00 9130 6e9e 0081 2400 0081 3000 8200
+        //9124 6e00 9130 6e9e 0081 2400 0081 3000
+        //8200 9125 6e00 9131 6e9e 0081 2500 0081
+        //3100 8200 9126 6e00 9132 6e9e 0081 2600
+        //0081 3200 8200 9127 6e00 9133 6e9e 0081
+        //2700 0081 3300 8200 9128 6e00 9134 6e9e
+        //0081 2800 0081 3400 8200 9127 6e00 9133
+        //6e9e 0081 2700 0081 3300 8200 9126 6e00
+        //9132 6e9e 0081 2600 0081 3200 8200 9125
+        //6e00 9131 6ebe 0081 2500 0081 3100 8200
+        //9130 6e00 913c 6e83 7581 3000 0081 3c00
+        //0b91 2d6e 0091 396e 8375 812d 0000 8139
+        //000b 9130 6e00 913c 6e83 7581 3000 0081
+        //3c00 0b91 3e6e 7581 3e00 0b91 326e 7581
+        //3200 0b91 306e 0091 3c6e 8175 8130 0000
+        //813c 0082 0b91 286e 0091 346e 8575 8128
 
         //////// TestG14.mid /////////
         // 4d54 6864

@@ -126,6 +126,7 @@ public class MidiFormat1Parser extends MidiParser {
     }
 
     private List<MidiMessage> getMidiEventsRunningStatus(MidiConstants.MidiEvent eventType, int argsCount) {
+        System.out.println("Running status event " + eventType.toString());
         boolean runningStatus = true;
         List<Integer> deltaTimeBytes = new ArrayList<>();
         List<MidiMessage> midiMessageRunningStatus = new ArrayList<>();
@@ -135,7 +136,11 @@ public class MidiFormat1Parser extends MidiParser {
             rewindCursor(deltaTimeBytes.size());
             int deltaTime = getVariableLengthQuantity();
             int nextByte = getBytesAsInt(1);
-            boolean isInMidiEventsCodes = Arrays.stream(midiEventsCodes).anyMatch(value -> nextByte == value);
+
+            System.out.println("deltaTime = " + deltaTime);
+            System.out.println("note " + Integer.toHexString(nextByte));
+
+            boolean isInMidiEventsCodes = Arrays.stream(midiEventsCodes).anyMatch(value -> (nextByte & 0xF0) == value);
 
             if (!isInMidiEventsCodes) {
                 MidiMessage midiMessageRunning = new MidiMessage();
@@ -145,9 +150,14 @@ public class MidiFormat1Parser extends MidiParser {
 
                 for (int i = 1; i < argsCount; i++) {
                     midiMessageRunning.addArgument(getBytesAsInt(1));
+                    System.out.println("vel " + Integer.toHexString(midiMessageRunning.getArguments().get(1)));
                 }
 
                 midiMessageRunningStatus.add(midiMessageRunning);
+            }
+            else {
+                System.out.println("Cursor = " + cursor);
+                System.out.println("Found event " + Integer.toHexString(nextByte));
             }
             runningStatus = !isInMidiEventsCodes;
         }
@@ -162,17 +172,17 @@ public class MidiFormat1Parser extends MidiParser {
         boolean parseTracks = true;
 
         while(parseTracks) {
+            System.out.println("--------------------------");
             System.out.println("cursor = " + cursor);
             System.out.println("bytes.length = " + bytes.length);
             if (cursor >= bytes.length) {
                 parseTracks = false;
                 break;
             }
+            System.out.println("new Track");
 
             int typeTrack = getBytesAsInt(4);
             int lengthTrack = getBytesAsInt(4);
-            System.out.println("--------------------------");
-            System.out.println("lengthTrack = " + lengthTrack);
 
             boolean endTrack = false;
             while(!endTrack) {
@@ -182,7 +192,6 @@ public class MidiFormat1Parser extends MidiParser {
                 // 1st byte
                 readBytes.add(getBytesAsInt(1));
                 int byteTypeMessage = readBytes.get(0);
-
                 MidiMessage midiMessage = new MidiMessage();
                 midiMessage.setDeltaTime(deltaTime);
                 List<MidiMessage> midiMessageRunningStatus = new ArrayList<>();
@@ -199,7 +208,6 @@ public class MidiFormat1Parser extends MidiParser {
 
                 if (byteTypeMessage == 0xF7) {
                     int len = getVariableLengthQuantity();
-                    System.out.println("0xF7 len = " + len);
                     List<Integer> bytes = getBytes(len);
 
                     midiMessage.setMidiEvent(MidiConstants.MidiEvent.F7SysexEvent);
@@ -211,7 +219,6 @@ public class MidiFormat1Parser extends MidiParser {
                 if (byteTypeMessage == 0xFF) {
                     // 2nd byte
                     readBytes.add(getBytesAsInt(1));
-                    System.out.println("0xFF " + Integer.toHexString(readBytes.get(1)));
 
                     switch(readBytes.get(1)) {
                         case 0x00:
@@ -363,6 +370,8 @@ public class MidiFormat1Parser extends MidiParser {
                     midiMessage.addArgument(midiChannel);
                     midiMessage.addArgument(readBytes.get(1));
                     midiMessage.addArgument(readBytes.get(2));
+
+                    midiMessageRunningStatus = getMidiEventsRunningStatus(MidiConstants.MidiEvent.NoteOff, 2);
                 }
 
                 if ((byteTypeMessage & 0xF0) == 0x90) {
@@ -375,35 +384,9 @@ public class MidiFormat1Parser extends MidiParser {
                     midiMessage.addArgument(midiChannel);
                     midiMessage.addArgument(readBytes.get(1));
                     midiMessage.addArgument(readBytes.get(2));
+                    System.out.println("NoteON / midiChannel = " + midiChannel + " / Note = " + readBytes.get(1) + " / Vel = " + readBytes.get(2));
 
                     midiMessageRunningStatus = getMidiEventsRunningStatus(MidiConstants.MidiEvent.NoteOn, 2);
-
-//                    boolean runningStatus = true;
-//                    List<Integer> deltaTimeBytes = new ArrayList<>();
-//
-//                    while(runningStatus) {
-//                        deltaTimeBytes = getVariableLengthQuantityBytes();
-//                        rewindCursor(deltaTimeBytes.size());
-//                        deltaTime = getVariableLengthQuantity();
-//                        System.out.println("deltaTime = " + deltaTime);
-//                        int nextByte = getBytesAsInt(1);
-//                        System.out.println("nextByte = " + nextByte);
-//                        boolean isInMidiEventsCodes = Arrays.stream(midiEventsCodes).anyMatch(value -> nextByte == value);
-//                        if (!isInMidiEventsCodes) {
-//                            int nextByte2 = getBytesAsInt(1);
-//                            System.out.println("nextByte2 = " + nextByte2);
-//                            MidiMessage midiMessageRunning = new MidiMessage();
-//                            midiMessageRunning.setMidiEvent(MidiConstants.MidiEvent.NoteOn);
-//                            midiMessageRunning.setDeltaTime(deltaTime);
-//                            midiMessageRunning.addArgument(midiChannel);
-//                            midiMessageRunning.addArgument(nextByte);
-//                            midiMessageRunning.addArgument(nextByte2);
-//                            midiMessageRunningStatus.add(midiMessageRunning);
-//                        }
-//                        runningStatus = !isInMidiEventsCodes;
-//                    }
-//                    rewindCursor(1 + deltaTimeBytes.size());
-
                 }
 
                 if ((byteTypeMessage & 0xF0) == 0xA0) {
@@ -432,27 +415,6 @@ public class MidiFormat1Parser extends MidiParser {
                     midiMessage.addArgument(readBytes.get(2));
 
                     midiMessageRunningStatus = getMidiEventsRunningStatus(MidiConstants.MidiEvent.ControllerChange, 2);
-//                    boolean runningStatus = true;
-//                    List<Integer> deltaTimeBytes = new ArrayList<>();
-//
-//                    while(runningStatus) {
-//                        deltaTimeBytes = getVariableLengthQuantityBytes();
-//                        rewindCursor(deltaTimeBytes.size());
-//                        deltaTime = getVariableLengthQuantity();
-//                        int nextByte = getBytesAsInt(1);
-//                        boolean isInMidiEventsCodes = Arrays.stream(midiEventsCodes).anyMatch(value -> nextByte == value);
-//                        if (!isInMidiEventsCodes) {
-//                            int nextByte2 = getBytesAsInt(1);
-//                            MidiMessage midiMessageRunning = new MidiMessage();
-//                            midiMessageRunning.setMidiEvent(MidiConstants.MidiEvent.ControllerChange);
-//                            midiMessageRunning.setDeltaTime(deltaTime);
-//                            midiMessageRunning.addArgument(nextByte);
-//                            midiMessageRunning.addArgument(nextByte2);
-//                            midiMessageRunningStatus.add(midiMessageRunning);
-//                        }
-//                        runningStatus = !isInMidiEventsCodes;
-//                    }
-//                    rewindCursor(1 + deltaTimeBytes.size());
                 }
 
                 if ((byteTypeMessage & 0xF0) == 0xC0) {
@@ -462,7 +424,6 @@ public class MidiFormat1Parser extends MidiParser {
                     readBytes.add(getBytesAsInt(1));
                     midiMessage.addArgument(midiChannel);
                     midiMessage.addArgument(readBytes.get(1));
-//                    midiMessageRunningStatus = getMidiEventsRunningStatus(MidiConstants.MidiEvent.ProgramChange, 1);
                 }
 
                 if ((byteTypeMessage & 0xF0) == 0xD0) {
@@ -492,6 +453,7 @@ public class MidiFormat1Parser extends MidiParser {
                 messages.add(midiMessage);
                 messages.addAll(midiMessageRunningStatus);
             }
+            System.out.println("--------------------------");
         }
 
         return messages;
